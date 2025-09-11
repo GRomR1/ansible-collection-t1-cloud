@@ -42,4 +42,6 @@ venv/
 .ansible/
 
 .env.local
-*.json
+pyrightconfig.json
+build/
+dist/

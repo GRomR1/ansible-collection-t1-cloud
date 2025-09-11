@@ -17,66 +17,67 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = r'''
-    name: t1_cloud_iam_token
-    author: T1 Cloud Module Contributors
-    version_added: "1.0.0"
-    short_description: Obtain access token for T1 Cloud authentication
+---
+name: t1_cloud_iam_token
+author: T1 Cloud Module Contributors
+version_added: "1.0.0"
+short_description: Obtain access token for T1 Cloud authentication
+description:
+  - Retrieves access token using service account API key
+  - Uses OAuth2 client credentials flow with service account
+  - Supports automatic token refresh and caching
+options:
+  auth_method:
     description:
-        - Retrieves access token using service account API key
-        - Uses OAuth2 client credentials flow with service account
-        - Supports automatic token refresh and caching
-    options:
-        auth_method:
-            description:
-                - Authentication method to use
-                - Currently only 'service_account' is supported
-            required: true
-            type: str
-            choices: ['service_account']
-        client_id:
-            description:
-                - Service account client ID (format: sa_proj-uuid)
-                - Can be obtained from T1 Cloud console when creating API key
-            required: false
-            type: str
-        client_secret:
-            description:
-                - Service account client secret (API key)
-                - Can be obtained from T1 Cloud console when creating API key
-            required: false
-            type: str
-        key_file:
-            description:
-                - Path to service account key file (JSON format)
-                - Should contain client_id and client_secret fields
-                - Alternative to providing client_id and client_secret directly
-            required: false
-            type: str
-        endpoint:
-            description:
-                - T1 Cloud authorization endpoint URL
-            required: false
-            type: str
-            default: "https://auth.t1.cloud/auth/realms/Portal/protocol/openid-connect/token"
-        scope:
-            description:
-                - OAuth2 scope for token request
-            required: false
-            type: str
-            default: "openid"
-        grant_type:
-            description:
-                - OAuth2 grant type
-            required: false
-            type: str
-            default: "client_credentials"
-    requirements:
-        - python >= 3.6
-        - requests
-    notes:
-        - Service account API keys can be created in T1 Cloud console
-        - Access tokens are valid for 1 hour
-        - Tokens are automatically refreshed when expired
+      - Authentication method to use.
+      - Currently only 'service_account' is supported
+    required: true
+    type: str
+    choices: ['service_account']
+  client_id:
+    description:
+      - Service account client ID (format - sa_proj-uuid)
+      - Can be obtained from T1 Cloud console when creating API key
+    required: false
+    type: str
+  client_secret:
+    description:
+      - Service account client secret (API key)
+      - Can be obtained from T1 Cloud console when creating API key
+    required: false
+    type: str
+  key_file:
+    description:
+      - Path to service account key file (JSON format)
+      - Should contain client_id and client_secret fields
+      - Alternative to providing client_id and client_secret directly
+    required: false
+    type: str
+  endpoint:
+    description:
+      - T1 Cloud authorization endpoint URL
+    required: false
+    type: str
+    default: "https://auth.t1.cloud/auth/realms/Portal/protocol/openid-connect/token"
+  scope:
+    description:
+      - OAuth2 scope for token request
+    required: false
+    type: str
+    default: "openid"
+  grant_type:
+    description:
+      - OAuth2 grant type
+    required: false
+    type: str
+    default: "client_credentials"
+requirements:
+  - python >= 3.6
+  - requests
+notes:
+  - Service account API keys can be created in T1 Cloud console
+  - Access tokens are valid for 1 hour
+  - Tokens are automatically refreshed when expired
 '''
 
 EXAMPLES = r'''
@@ -109,17 +110,17 @@ EXAMPLES = r'''
 
 RETURN = r'''
 _raw:
-    description: Access token for API authentication
-    type: str
-    returned: success
+  description: Access token for API authentication
+  type: str
+  returned: success
 token_type:
-    description: Type of the token (usually "Bearer")
-    type: str
-    returned: success
+  description: Type of the token (usually "Bearer")
+  type: str
+  returned: success
 expires_in:
-    description: Token expiration time in seconds
-    type: int
-    returned: success
+  description: Token expiration time in seconds
+  type: int
+  returned: success
 '''
 
 import json
