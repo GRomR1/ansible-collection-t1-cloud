@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.lib/
+lib/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Pytest
+.cache/
+pytest_debug.log
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# jupyter notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# virtualenv
+ENV/
+env/
+.venv/
+venv/
+
+# ansible
+.ansible/
+
+.env.local
+*.json

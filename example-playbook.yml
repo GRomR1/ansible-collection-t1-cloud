@@ -1,0 +1,294 @@
+---
+# Example usage:
+# 1. Create VMs:
+#    ansible-playbook example-playbook.yml
+#
+# 2. Stop web server:
+#    ansible-playbook example-playbook.yml -e "stop_web_server=true"
+#
+# 3. Clean up web server:
+#    ansible-playbook example-playbook.yml -e "cleanup_web_server=true"
+
+- name: Manage T1 Cloud Virtual Machines
+  hosts: localhost
+  gather_facts: false
+  vars:
+    t1_client_id: "{{ lookup('env', 'T1_CLOUD_CLIENT_ID') }}"
+    t1_client_secret: "{{ lookup('env', 'T1_CLOUD_CLIENT_SECRET') }}"
+    t1_project_id: "{{ lookup('env', 'T1_CLOUD_PROJECT_ID') }}"
+    t1_api_token: "{{ lookup('t1_cloud_iam_token', 'service_account', client_id=t1_client_id, client_secret=t1_client_secret) }}"
+
+    # VM configuration variables
+    vm_image_id: "2be0c61e-7772-46ed-8ecd-f2b8632f151a" # Ubuntu 24.04
+    vm_flavor_id: "3b259b39-6e73-41d5-b98e-b93c0bf31e95" # b5.large.2 (2 vCPU, 4GB RAM)
+    vm_flavor_name: "b5.large.2"
+    vm_flavor_ram: 4096
+    vm_flavor_vcpus: 2
+    vm_subnet_id: "d0a5e4c0-1323-483d-8f5a-0e797a0fdd85"
+    vm_subnet_cidr: "10.9.60.0/24"
+    vm_subnet_name: "10-9-60-0-24"
+    vm_disk_type_id: "7ced5dc4-848a-4c02-bb76-8a3a9b7fff7f" # POD2_Average
+    vm_security_group_id: "3706eb85-cb97-4713-a581-3ed76cb745d3"
+
+  tasks:
+    - name: Check if API client ID and client secret is provided
+      fail:
+        msg: "All needed system environment variable must be set"
+      when:
+        - t1_client_id == ""
+        - t1_client_secret == ""
+        - t1_api_token == ""
+
+    - name: Create web server VM
+      t1_cloud_vm:
+        api_token: "{{ t1_api_token }}"
+        project_id: "{{ t1_project_id }}"
+        name: "web-server-01"
+        description: "Web server for production environment"
+        image_id: "{{ vm_image_id }}"
+        flavor_id: "{{ vm_flavor_id }}"
+        flavor_name: "{{ vm_flavor_name }}"
+        flavor_ram: "{{ vm_flavor_ram }}"
+        flavor_vcpus: "{{ vm_flavor_vcpus }}"
+        subnet_id: "{{ vm_subnet_id }}"
+        subnet_cidr: "{{ vm_subnet_cidr }}"
+        subnet_name: "{{ vm_subnet_name }}"
+        disk_size: 30
+        disk_type_id: "{{ vm_disk_type_id }}"
+        security_groups:
+          - "{{ vm_security_group_id }}"
+        user_data: |
+          #cloud-config
+          packages:
+            - nginx
+            - htop
+            - curl
+          runcmd:
+            - systemctl enable nginx
+            - systemctl start nginx
+            - echo "Web server ready" > /var/log/deployment.log
+        labels:
+          environment: "production"
+          role: "webserver"
+          team: "infrastructure"
+        state: present
+        wait: true
+        wait_timeout: 900
+        gather_info: true
+      register: web_server_result
+      delegate_to: localhost
+
+    - name: Display web server creation result
+      debug:
+        msg:
+          - "VM ID: {{ web_server_result.vm.id }}"
+          - "VM Name: {{ web_server_result.vm.attrs.name }}"
+          - "VM Status: {{ web_server_result.vm.status }}"
+          - "Power State: {{ web_server_result.runtime_info.power_status | default('unknown') }}"
+          - "Primary IP: {{ web_server_result.runtime_info.primary_ipv4 | default('Not assigned') }}"
+          - "Instance ID: {{ web_server_result.runtime_info.instance_id | default('N/A') }}"
+          - "Changed: {{ web_server_result.changed }}"
+
+    - name: Create database server VM with additional storage
+      t1_cloud_vm:
+        api_token: "{{ t1_api_token }}"
+        project_id: "{{ t1_project_id }}"
+        name: "db-server-01"
+        description: "PostgreSQL database server"
+        image_id: "{{ vm_image_id }}"
+        flavor_id: "{{ vm_flavor_id }}"
+        flavor_name: "{{ vm_flavor_name }}"
+        flavor_ram: "{{ vm_flavor_ram }}"
+        flavor_vcpus: "{{ vm_flavor_vcpus }}"
+        subnet_id: "{{ vm_subnet_id }}"
+        subnet_cidr: "{{ vm_subnet_cidr }}"
+        subnet_name: "{{ vm_subnet_name }}"
+        disk_size: 30
+        disk_type_id: "{{ vm_disk_type_id }}"
+        extra_disks:
+          - name: "db-data"
+            size: 20
+            type_id: "{{ vm_disk_type_id }}"
+            type_name: "POD2_Average"
+          - name: "db-logs"
+            size: 50
+            type_id: "{{ vm_disk_type_id }}"
+            type_name: "POD2_Average"
+        security_groups:
+          - "{{ vm_security_group_id }}"
+        assign_public_ip: false
+        requested_ip: "10.9.60.100"
+        user_data: |
+          #cloud-config
+          packages:
+            - postgresql
+            - postgresql-contrib
+          runcmd:
+            - systemctl enable postgresql
+            - systemctl start postgresql
+            - echo "Database server ready" > /var/log/deployment.log
+        labels:
+          environment: "production"
+          role: "database"
+          team: "data"
+        state: present
+        wait: true
+        wait_timeout: 900
+        gather_info: true
+      register: db_server_result
+      delegate_to: localhost
+
+    - name: Display database server creation result
+      debug:
+        msg:
+          - "VM ID: {{ db_server_result.vm.id }}"
+          - "VM Name: {{ db_server_result.vm.attrs.name }}"
+          - "VM Status: {{ db_server_result.vm.status }}"
+          - "Power State: {{ db_server_result.runtime_info.power_status | default('unknown') }}"
+          - "Requested IP: {{ db_server_result.vm.attrs.network_configuration.requested_ip | default('Auto-assigned') }}"
+          - "Actual Primary IP: {{ db_server_result.runtime_info.primary_ipv4 | default('Not yet assigned') }}"
+          - "All IP Addresses: {{ db_server_result.runtime_info.ip_addresses | default({}) }}"
+
+    - name: Wait for all VMs to be fully operational
+      pause:
+        seconds: 30
+        prompt: "Waiting for VMs to complete initialization..."
+
+# Playbook for VM lifecycle management
+- name: VM Lifecycle Management Examples
+  hosts: localhost
+  gather_facts: false
+  vars:
+    t1_client_id: "{{ lookup('env', 'T1_CLOUD_CLIENT_ID') }}"
+    t1_client_secret: "{{ lookup('env', 'T1_CLOUD_CLIENT_SECRET') }}"
+    t1_project_id: "{{ lookup('env', 'T1_CLOUD_PROJECT_ID') }}"
+    t1_api_token: "{{ lookup('t1_cloud_iam_token', 'service_account', client_id=t1_client_id, client_secret=t1_client_secret) }}"
+
+  tasks:
+    - name: Check if API client ID and client secret is provided
+      fail:
+        msg: "T1_CLOUD_CLIENT_ID and T1_CLOUD_CLIENT_SECRET environment variable must be set"
+      when:
+        - t1_client_id == ""
+        - t1_client_secret == ""
+        - t1_api_token == ""
+
+    - name: Stop web server VM
+      t1_cloud_vm:
+        api_token: "{{ t1_api_token }}"
+        project_id: "{{ t1_project_id }}"
+        name: "web-server-01"
+        state: stopped
+        wait: true
+      when: stop_web_server | default(false)
+      delegate_to: localhost
+
+    - name: Start web server
+      t1_cloud_vm:
+        api_token: "{{ t1_api_token }}"
+        project_id: "{{ t1_project_id }}"
+        name: "web-server-01"
+        state: started
+        wait: true
+      when: start_web_server | default(false)
+      delegate_to: localhost
+
+    - name: Clean up - delete web server
+      t1_cloud_vm:
+        api_token: "{{ t1_api_token }}"
+        project_id: "{{ t1_project_id }}"
+        name: "web-server-01"
+        state: absent
+        wait: true
+      when: cleanup_web_server | default(false)
+      delegate_to: localhost
+
+# Additional playbook for gathering VM information
+- name: VM Information Gathering Examples
+  hosts: localhost
+  gather_facts: false
+  vars:
+    t1_client_id: "{{ lookup('env', 'T1_CLOUD_CLIENT_ID') }}"
+    t1_client_secret: "{{ lookup('env', 'T1_CLOUD_CLIENT_SECRET') }}"
+    t1_project_id: "{{ lookup('env', 'T1_CLOUD_PROJECT_ID') }}"
+    t1_api_token: "{{ lookup('t1_cloud_iam_token', 'service_account', client_id=t1_client_id, client_secret=t1_client_secret) }}"
+
+  tasks:
+    - name: Check if API client ID and client secret is provided
+      fail:
+        msg: "All needed system environment variable must be set"
+      when:
+        - t1_client_id == ""
+        - t1_client_secret == ""
+        - t1_api_token == ""
+
+    - name: Get runtime information for specific VM
+      t1_cloud_vm:
+        api_token: "{{ t1_api_token }}"
+        project_id: "{{ t1_project_id }}"
+        name: "web-server-01"
+        state: present
+        gather_info: true
+      register: vm_info
+      delegate_to: localhost
+
+    - name: Display comprehensive VM information
+      debug:
+        msg:
+          - "=== VM Basic Information ==="
+          - "Name: {{ vm_info.vm.attrs.name }}"
+          - "Order ID: {{ vm_info.vm.id }}"
+          - "Order Status: {{ vm_info.vm.status }}"
+          - "Created: {{ vm_info.vm.created_at }}"
+          - "Updated: {{ vm_info.vm.updated_at }}"
+          - ""
+          - "=== VM Runtime Information ==="
+          - "Instance ID: {{ vm_info.runtime_info.instance_id | default('N/A') }}"
+          - "Power State: {{ vm_info.runtime_info.power_status | default('unknown') }}"
+          - "Primary IPv4: {{ vm_info.runtime_info.primary_ipv4 | default('Not assigned') }}"
+          - "Primary IPv6: {{ vm_info.runtime_info.primary_ipv6 | default('Not assigned') }}"
+          - ""
+          - "=== VM Configuration ==="
+          - "Flavor: {{ vm_info.runtime_info.flavor.name | default('Unknown') }}"
+          - "vCPUs: {{ vm_info.runtime_info.flavor.vcpus | default('?') }}"
+          - "RAM: {{ vm_info.runtime_info.flavor.ram | default('?') }} MB"
+          - "Image: {{ vm_info.runtime_info.image.name | default('Unknown') }}"
+          - "OS: {{ vm_info.runtime_info.image.os_distro | default('Unknown') }}"
+          - "Availability Zone: {{ vm_info.runtime_info.availability_zone.name | default('Unknown') }}"
+          - ""
+          - "=== Network Information ==="
+          - "All Networks: {{ vm_info.runtime_info.ip_addresses.keys() | list }}"
+
+    - name: Display detailed network information
+      debug:
+        msg: "Network {{ item.key }}: {{ item.value }}"
+      with_dict: "{{ vm_info.runtime_info.ip_addresses | default({}) }}"
+
+    - name: Check if VM has public IP
+      debug:
+        msg:
+          - "VM has public IP access: {{ 'Yes' if vm_info.runtime_info.ip_addresses | default({}) | dict2items | selectattr('value', 'search', 'floating') | list | length > 0 else 'No' }}"
+
+    - name: Monitor VM power state
+      t1_cloud_vm:
+        api_token: "{{ t1_api_token }}"
+        project_id: "{{ t1_project_id }}"
+        name: "{{ item }}"
+        state: present
+        gather_info: true
+      register: vm_monitoring
+      loop:
+        - "web-server-01"
+        - "db-server-01"
+      ignore_errors: true
+      delegate_to: localhost
+
+    - name: Display monitoring summary
+      debug:
+        msg:
+          - "VM: {{ item.vm.attrs.name | default('Unknown') }}"
+          - "Status: {{ item.runtime_info.power_status | default('unknown') }}"
+          - "IP: {{ item.runtime_info.primary_ipv4 | default('N/A') }}"
+      loop: "{{ vm_monitoring.results }}"
+      when: item.vm is defined
+      delegate_to: localhost
