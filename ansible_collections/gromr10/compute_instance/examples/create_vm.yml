@@ -1,0 +1,167 @@
+---
+- name: T1 Cloud VM Management Examples
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    # These should be defined in your inventory or passed as extra vars
+    t1_cloud_api_token: "your-api-token-here"
+    # or
+    # service_account_id: "xxxx"
+    # service_account_secret: "xxx"
+    t1_cloud_project_id: "your-project-id"
+    subnet_id: "xxxx"
+
+    # Example variables (replace with actual values)
+    vm_name: "example-web-server"
+    vm_description: "Example web server created with Ansible"
+    vm_image: "ubuntu-20.04"
+    vm_flavor: "small"
+    vm_disk_size: 50
+
+    # SSH key for VM access
+    ssh_public_key: |
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7... your-ssh-key-here
+
+    # Cloud-init user data
+    cloud_init_data: |
+      #cloud-config
+      package_update: true
+      packages:
+        - nginx
+        - htop
+        - curl
+
+      write_files:
+        - path: /var/www/html/index.html
+          content: |
+            <h1>Hello from T1 Cloud VM!</h1>
+            <p>This server was provisioned with Ansible.</p>
+          owner: www-data:www-data
+          permissions: '0644'
+
+      runcmd:
+        - systemctl enable nginx
+        - systemctl start nginx
+        - ufw allow 'Nginx Full'
+
+  collections:
+    - gromr10.compute_instance
+
+  tasks:
+    # Example 1: Get access token using lookup plugin
+    - name: Get T1 Cloud access token
+      set_fact:
+        api_token: "{{ lookup('gromr10.compute_instance.t1_cloud_iam_token',
+          auth_method='service_account',
+          client_id=service_account_id,
+          client_secret=service_account_secret) }}"
+      when: t1_cloud_api_token is not defined
+
+    # Example 2: Create a simple VM
+    - name: Create basic VM
+      gromr10.compute_instance.t1_cloud_vm:
+        api_token: "{{ t1_cloud_api_token | default(api_token) }}"
+        project_id: "{{ t1_cloud_project_id }}"
+        name: "{{ vm_name }}-basic"
+        description: "Basic VM example"
+        image_id: "{{ vm_image }}"
+        flavor_id: "{{ vm_flavor }}"
+        subnet_id: "{{ subnet_id }}"
+        disk_size: 20
+        state: present
+      register: basic_vm_result
+
+    - name: Display basic VM info
+      debug:
+        msg: "Created VM with ID: {{ basic_vm_result.vm.id }}"
+
+    # Example 3: Create VM with additional storage and public IP
+    - name: Create VM with extra features
+      gromr10.compute_instance.t1_cloud_vm:
+        api_token: "{{ t1_cloud_api_token | default(api_token) }}"
+        project_id: "{{ t1_cloud_project_id }}"
+        name: "{{ vm_name }}"
+        description: "{{ vm_description }}"
+        image_id: "{{ vm_image }}"
+        flavor_id: "{{ vm_flavor }}"
+        subnet_id: "{{ subnet_id }}"
+        disk_size: "{{ vm_disk_size }}"
+        extra_disks:
+          - name: "data-storage"
+            size: 100
+            type_name: "ssd"
+          - name: "backup-storage"
+            size: 200
+            type_name: "hdd"
+        assign_public_ip: true
+        public_ip_bandwidth: 100
+        ssh_keys:
+          - "{{ ssh_public_key }}"
+        user_data: "{{ cloud_init_data }}"
+        labels:
+          environment: "demo"
+          project: "ansible-example"
+          managed_by: "ansible"
+        state: present
+      register: full_vm_result
+
+    - name: Display full VM info
+      debug:
+        var: full_vm_result.vm
+
+    # Example 4: Wait for VM to be ready
+    - name: Wait for VM to be active
+      gromr10.compute_instance.t1_cloud_vm:
+        api_token: "{{ t1_cloud_api_token | default(api_token) }}"
+        project_id: "{{ t1_cloud_project_id }}"
+        name: "{{ vm_name }}"
+        state: present
+      register: vm_status
+      until: vm_status.vm.status == "active"
+      retries: 30
+      delay: 10
+
+    # Example 5: VM state management
+    - name: Stop VM
+      gromr10.compute_instance.t1_cloud_vm:
+        api_token: "{{ t1_cloud_api_token | default(api_token) }}"
+        project_id: "{{ t1_cloud_project_id }}"
+        name: "{{ vm_name }}"
+        state: stopped
+      tags: ["never", "stop_vm"]
+
+    - name: Start VM
+      gromr10.compute_instance.t1_cloud_vm:
+        api_token: "{{ t1_cloud_api_token | default(api_token) }}"
+        project_id: "{{ t1_cloud_project_id }}"
+        name: "{{ vm_name }}"
+        state: started
+      tags: ["never", "start_vm"]
+
+    # Example 6: Clean up - delete VMs
+    - name: Delete example VMs
+      gromr10.compute_instance.t1_cloud_vm:
+        api_token: "{{ t1_cloud_api_token | default(api_token) }}"
+        project_id: "{{ t1_cloud_project_id }}"
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ vm_name }}-basic"
+        - "{{ vm_name }}"
+      tags: ["never", "cleanup"]
+
+    - name: Example complete
+      debug:
+        msg: |
+          T1 Cloud VM examples completed successfully!
+
+          To run specific examples:
+          - Stop VM: ansible-playbook create_vm.yml --tags stop_vm
+          - Start VM: ansible-playbook create_vm.yml --tags start_vm
+          - Clean up: ansible-playbook create_vm.yml --tags cleanup
+
+          Make sure to define the following variables:
+          - t1_cloud_api_token (or service account credentials)
+          - t1_cloud_project_id
+          - subnet_id

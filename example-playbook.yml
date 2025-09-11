@@ -12,11 +12,13 @@
 - name: Manage T1 Cloud Virtual Machines
   hosts: localhost
   gather_facts: false
+  collections:
+    - gromr10.compute_instance
   vars:
     t1_client_id: "{{ lookup('env', 'T1_CLOUD_CLIENT_ID') }}"
     t1_client_secret: "{{ lookup('env', 'T1_CLOUD_CLIENT_SECRET') }}"
     t1_project_id: "{{ lookup('env', 'T1_CLOUD_PROJECT_ID') }}"
-    t1_api_token: "{{ lookup('t1_cloud_iam_token', 'service_account', client_id=t1_client_id, client_secret=t1_client_secret) }}"
+    t1_api_token: "{{ lookup('gromr10.compute_instance.t1_cloud_iam_token', 'service_account', client_id=t1_client_id, client_secret=t1_client_secret) }}"
 
     # VM configuration variables
     vm_image_id: "2be0c61e-7772-46ed-8ecd-f2b8632f151a" # Ubuntu 24.04
@@ -40,7 +42,7 @@
         - t1_api_token == ""
 
     - name: Create web server VM
-      t1_cloud_vm:
+      gromr10.compute_instance.t1_cloud_vm:
         api_token: "{{ t1_api_token }}"
         project_id: "{{ t1_project_id }}"
         name: "web-server-01"
@@ -90,7 +92,7 @@
           - "Changed: {{ web_server_result.changed }}"
 
     - name: Create database server VM with additional storage
-      t1_cloud_vm:
+      gromr10.compute_instance.t1_cloud_vm:
         api_token: "{{ t1_api_token }}"
         project_id: "{{ t1_project_id }}"
         name: "db-server-01"
@@ -158,11 +160,13 @@
 - name: VM Lifecycle Management Examples
   hosts: localhost
   gather_facts: false
+  collections:
+    - gromr10.compute_instance
   vars:
     t1_client_id: "{{ lookup('env', 'T1_CLOUD_CLIENT_ID') }}"
     t1_client_secret: "{{ lookup('env', 'T1_CLOUD_CLIENT_SECRET') }}"
     t1_project_id: "{{ lookup('env', 'T1_CLOUD_PROJECT_ID') }}"
-    t1_api_token: "{{ lookup('t1_cloud_iam_token', 'service_account', client_id=t1_client_id, client_secret=t1_client_secret) }}"
+    t1_api_token: "{{ lookup('gromr10.compute_instance.t1_cloud_iam_token', 'service_account', client_id=t1_client_id, client_secret=t1_client_secret) }}"
 
   tasks:
     - name: Check if API client ID and client secret is provided
@@ -174,7 +178,7 @@
         - t1_api_token == ""
 
     - name: Stop web server VM
-      t1_cloud_vm:
+      gromr10.compute_instance.t1_cloud_vm:
         api_token: "{{ t1_api_token }}"
         project_id: "{{ t1_project_id }}"
         name: "web-server-01"
@@ -184,7 +188,7 @@
       delegate_to: localhost
 
     - name: Start web server
-      t1_cloud_vm:
+      gromr10.compute_instance.t1_cloud_vm:
         api_token: "{{ t1_api_token }}"
         project_id: "{{ t1_project_id }}"
         name: "web-server-01"
@@ -194,7 +198,7 @@
       delegate_to: localhost
 
     - name: Clean up - delete web server
-      t1_cloud_vm:
+      gromr10.compute_instance.t1_cloud_vm:
         api_token: "{{ t1_api_token }}"
         project_id: "{{ t1_project_id }}"
         name: "web-server-01"
@@ -207,11 +211,13 @@
 - name: VM Information Gathering Examples
   hosts: localhost
   gather_facts: false
+  collections:
+    - gromr10.compute_instance
   vars:
     t1_client_id: "{{ lookup('env', 'T1_CLOUD_CLIENT_ID') }}"
     t1_client_secret: "{{ lookup('env', 'T1_CLOUD_CLIENT_SECRET') }}"
     t1_project_id: "{{ lookup('env', 'T1_CLOUD_PROJECT_ID') }}"
-    t1_api_token: "{{ lookup('t1_cloud_iam_token', 'service_account', client_id=t1_client_id, client_secret=t1_client_secret) }}"
+    t1_api_token: "{{ lookup('gromr10.compute_instance.t1_cloud_iam_token', 'service_account', client_id=t1_client_id, client_secret=t1_client_secret) }}"
 
   tasks:
     - name: Check if API client ID and client secret is provided
@@ -223,7 +229,7 @@
         - t1_api_token == ""
 
     - name: Get runtime information for specific VM
-      t1_cloud_vm:
+      gromr10.compute_instance.t1_cloud_vm:
         api_token: "{{ t1_api_token }}"
         project_id: "{{ t1_project_id }}"
         name: "web-server-01"
@@ -270,7 +276,7 @@
           - "VM has public IP access: {{ 'Yes' if vm_info.runtime_info.ip_addresses | default({}) | dict2items | selectattr('value', 'search', 'floating') | list | length > 0 else 'No' }}"
 
     - name: Monitor VM power state
-      t1_cloud_vm:
+      gromr10.compute_instance.t1_cloud_vm:
         api_token: "{{ t1_api_token }}"
         project_id: "{{ t1_project_id }}"
         name: "{{ item }}"

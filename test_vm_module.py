@@ -13,8 +13,10 @@ import json
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'plugins', 'modules'))
 
 try:
-    from plugins.modules.t1_cloud_vm import T1CloudVM, build_vm_config, validate_name
-    from plugins.lookup.t1_cloud_iam_token import T1CloudAuth
+    from ansible_collections.gromr10.compute_instance.plugins.modules.t1_cloud_vm import T1CloudVM, build_vm_config, validate_name
+    from ansible_collections.gromr10.compute_instance.plugins.lookup.t1_cloud_iam_token import (
+        T1CloudAuth,
+    )
     print("✓ Module imports successfully")
 except ImportError as e:
     print(f"✗ Failed to import module: {e}")
@@ -113,9 +115,9 @@ def test_vm_config_builder():
     except Exception as e:
         print(f"✗ Failed to build VM configuration: {e}")
 
-def test_t1cloud_client_initialization():
-    """Test T1CloudVM client initialization"""
-    print("\n--- Testing T1CloudVM client initialization ---")
+def test_vm_client_initialization():
+    """Test VM client initialization"""
+    print("\n--- Testing VM client initialization ---")
 
     try:
         # Test with dummy credentials
@@ -123,7 +125,7 @@ def test_t1cloud_client_initialization():
             api_token="dummy_token",
             project_id="proj-test123"
         )
-        print("✓ T1CloudVM client initialized successfully")
+        print("✓ VM client initialized successfully")
 
         # Check if base attributes are set correctly
         if client.api_token == "dummy_token":
@@ -142,7 +144,7 @@ def test_t1cloud_client_initialization():
             print("✗ Base URL not set correctly")
 
     except Exception as e:
-        print(f"✗ Failed to initialize T1CloudVM client: {e}")
+        print(f"✗ Failed to initialize VM client: {e}")
 
 def test_vm_config_with_extra_disks():
     """Test VM configuration with additional disks"""
@@ -251,7 +253,7 @@ def test_vm_runtime_info_parsing():
             api_token="dummy_token",
             project_id="proj-test123"
         )
-        print("✓ T1CloudVM client created for runtime info testing")
+        print("✓ VM client created for runtime info testing")
 
         # Mock compute instance response (similar to actual API response)
         mock_instance_response = {
@@ -453,7 +455,7 @@ def main():
 
     test_vm_name_validation()
     test_vm_config_builder()
-    test_t1cloud_client_initialization()
+    test_vm_client_initialization()
     test_vm_config_with_extra_disks()
     test_vm_runtime_info_parsing()
     # test_vm_creation() # uncomment only when you need to test actual API calls

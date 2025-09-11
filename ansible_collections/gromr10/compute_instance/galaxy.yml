@@ -1,0 +1,54 @@
+namespace: gromr10
+name: compute_instance
+version: 1.0.0
+readme: README.md
+authors:
+  - "Ruslan Gainanov <rgainanov@inno.tech>"
+description: >-
+  Ansible collection for managing T1 Cloud compute instances and infrastructure.
+  This collection provides modules and plugins for creating, managing, and configuring
+  virtual machines in T1 Cloud platform using REST API. Supports full VM lifecycle
+  management including disk configuration, network setup, SSH key injection, and
+  cloud-init user data configuration.
+license:
+  - "Apache-2.0"
+tags:
+  - cloud
+  - t1cloud
+  - infrastructure
+  - compute
+  - virtual_machines
+  - automation
+  - iaas
+  - api
+  - rest
+dependencies: {}
+repository: "https://github.com/GRomR1/ansible-collection-t1-cloud"
+documentation: "https://github.com/GRomR1/ansible-collection-t1-cloud/blob/main/ansible_collections/gromr10/compute_instance/README.rst"
+homepage: "https://t1-cloud.ru/"
+issues: "https://github.com/GRomR1/ansible-collection-t1-cloud/issues"
+build_ignore:
+  - "*.pyc"
+  - "*.pyo"
+  - "*.retry"
+  - ".git"
+  - ".gitignore"
+  - ".DS_Store"
+  - "__pycache__"
+  - ".pytest_cache"
+  - ".vscode"
+  - ".idea"
+  - "*.tar.gz"
+  - "tests/output"
+  - ".venv"
+  - "venv"
+  - ".ansible"
+  - "*.egg-info"
+  - ".coverage"
+  - "htmlcov"
+  - ".tox"
+  - "dist/"
+  - "build/"
+  - "*.log"
+  - ".mypy_cache"
+  - "pyrightconfig.json"
