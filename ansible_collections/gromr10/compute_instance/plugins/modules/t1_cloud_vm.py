@@ -1043,7 +1043,8 @@ def build_vm_config(module):
             "name": params['subnet_name']
         },
         "set_ip_address": bool(params['requested_ip']),
-        "toggle_shared_network": bool(params['toggle_shared_network'])
+        "toggle_shared_network": bool(params['toggle_shared_network']),
+        "use_external_network": False
     }
 
     if params['requested_ip']:
